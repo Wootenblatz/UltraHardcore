@@ -108,6 +108,7 @@ local function UpdateXPTracking(levelUp)
       -- Instead of repeatedly calling UpdateStat in the loop above (which resaves CharacterStats over and over)
       -- Call SaveDBData once at the end
       SaveDBData('characterStats', UltraHardcoreDB.characterStats)
+      StatSnapshot:Update(UltraHardcoreDB.characterStats)
     end
 
     lastXPValue = AddonXPTracking:NewLastXPValue(levelUp, currentXP)
