@@ -10,7 +10,7 @@ local AddonXPTracking = {
     [51] = 153900, [52] = 160400, [53] = 167100, [54] = 173900, [55] = 180800, [56] = 187900, [57] = 195000, [58] = 202300, [59] = 209800, [60] = 217400
   },
   highXpMark = 999999999,
-  DEBUGXP = false,
+  DEBUGXP = UHC_VERSION_TYPE == "D" and true or false,
   trackingInitialized = false
 }
 
@@ -341,23 +341,27 @@ function AddonXPTracking:XPReport()
   print(msgPrefix .. yellowTextColour .. "XP Gained With Addon: " .. greenTextColour .. tostring(AddonXPTracking:WithAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "XP Gained Without Addon: |r".. redTextColour .. tostring(AddonXPTracking:WithoutAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "Your addon XP |r" .. verified)
-  if AddonXPTracking:ValidateTotalStoredXP() ~= true then
+  if AddonXPTracking:ValidateTotalStoredXP() ~= true and UHC_VERSION_TYPE ~= "R" then
     AddonXPTracking:PrintXPVerificationWarning()
   end
 
   -- REMOVE BEFORE RELEASE
-  print(msgPrefix .. "If your XP was invalidated from the Nov 12th beta, run " .. redTextColour .. "/uhcresettracking|r to correct this")
+  if UHC_VERSION_TYPE ~= "R" then
+    print(msgPrefix .. "If your XP was invalidated from the Nov 12th beta, run " .. redTextColour .. "/uhcresettracking|r to correct this")
+  end
 end 
 
 
 -- REMOVE BEFORE RELEASE
 SLASH_DEVRESETXP1 = '/uhcresettracking'
 SlashCmdList['DEVRESETXP'] = function()
-  AddonXPTracking:UpdateStat("xpTotal", nil)
-  AddonXPTracking:UpdateStat("xpGWA", nil)
-  AddonXPTracking:UpdateStat("xpGWOA", nil)
-  AddonXPTracking:ResetXPGainedWithAddon(true)
-  print(msgPrefix .. yellowTextColour ..  "ADDON XP RESET.|r Please do " .. redTextColour .. "/reload|r now")
+  if UHC_VERSION_TYPE ~= "R" then
+    AddonXPTracking:UpdateStat("xpTotal", nil)
+    AddonXPTracking:UpdateStat("xpGWA", nil)
+    AddonXPTracking:UpdateStat("xpGWOA", nil)
+    AddonXPTracking:ResetXPGainedWithAddon(true)
+    print(msgPrefix .. yellowTextColour ..  "ADDON XP RESET.|r Please do " .. redTextColour .. "/reload|r now")
+  end
 end
 
 SLASH_XPFORLEVEL1 = '/uhcxpforlevel'

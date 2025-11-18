@@ -1,6 +1,7 @@
 addonName = ...
 UltraHardcore = CreateFrame('Frame')
-
+-- R = Release, B = Beta, D = Develop
+UHC_VERSION_TYPE = "R"
 -- DB Values
 WELCOME_MESSAGE_CLOSED = false
 GLOBAL_SETTINGS = {} -- Will be populated by LoadDBData()
