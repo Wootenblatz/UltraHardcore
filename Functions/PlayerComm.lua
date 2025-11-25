@@ -3,6 +3,8 @@
 -- Uses AceComm and AceSerializer for secure communication
 -- Can be extended for various communication needs
 
+REQUEST_TIMEOUT = 5.0
+
 local AceComm = LibStub("AceComm-3.0")
 local AceSerializer = LibStub("AceSerializer-3.0")
 
@@ -16,7 +18,6 @@ local playerTamperStatus = {}
 local guildFoundHandlers = {}
 
 -- Request timeout (seconds)
-local REQUEST_TIMEOUT = 1.0
 
 -- Pending requests (requestId -> {callback, timestamp, playerName, messageType})
 local pendingRequests = {}
@@ -149,11 +150,23 @@ local function OnCommReceived(prefix, message, distribution, sender)
     return -- Invalid or corrupted message
   end
   
-  if not data or type(data) ~= "table" or not data.type then
+  if not data or type(data) ~= "table" then
     return -- Invalid or corrupted message
   end
   
-  -- Handle tamper status requests
+  -- Handle Guild Found handshake messages (these don't have a "type" field)
+  if data.messageType == "GF_HANDSHAKE" then
+    -- Add sender to payload and notify handlers
+    data.sender = sender
+    NotifyGuildFoundHandlers(data)
+    return
+  end
+  
+  -- Handle tamper status requests (these require a "type" field)
+  if not data.type then
+    return -- Invalid or corrupted message
+  end
+  
   if data.messageType == "TAMPER_STATUS" then
     -- Handle request (someone asking for our tamper status)
     if data.type == "REQUEST" and data.requestId then
@@ -201,12 +214,10 @@ local function OnCommReceived(prefix, message, distribution, sender)
         end
       end
     end
+  elseif data.messageType == "GF_HANDSHAKE" then
+    data.sender = sender
+    NotifyGuildFoundHandlers(data)
   end
-  
-  -- Extend here for other message types
-  -- if data.messageType == "OTHER_TYPE" then
-  --   -- Handle other message types
-  -- end
 end
 
 -- Get cached tamper status for a player
@@ -235,9 +246,6 @@ end
 function PlayerComm:ClearCachedStatus(playerName)
   if playerName then
     playerTamperStatus[playerName] = nil
-  elseif data.messageType == "GF_HANDSHAKE" then
-    data.sender = sender
-    NotifyGuildFoundHandlers(data)
   end
 end
 
