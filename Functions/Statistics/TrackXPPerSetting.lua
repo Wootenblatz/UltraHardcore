@@ -43,6 +43,10 @@ local sessionStartXP = nil
 local lastXPUpdate = nil
 local lastXPValue = nil
 
+local function GetXPVariableSettings()
+  return settingToXPVariable
+end
+
 -- Function to initialize XP tracking
 local function InitializeXPTracking()
   local playerLevel = UnitLevel("player")
@@ -55,7 +59,8 @@ end
 -- Function to update XP tracking for each setting
 local function UpdateXPTracking(levelUp)
   if levelUp == nil then levelUp = false end
- 
+  if StatSnapshot:IsValid() ~= true then return end 
+
   local currentXP = AddonXPTracking:GetXP(levelUp)
   local currentTime = GetTime()
 
@@ -108,11 +113,11 @@ local function UpdateXPTracking(levelUp)
       -- Instead of repeatedly calling UpdateStat in the loop above (which resaves CharacterStats over and over)
       -- Call SaveDBData once at the end
       SaveDBData('characterStats', UltraHardcoreDB.characterStats)
-      StatSnapshot:Update(UltraHardcoreDB.characterStats)
     end
 
     lastXPValue = AddonXPTracking:NewLastXPValue(levelUp, currentXP)
     lastXPUpdate = AddonXPTracking:NewLastXPUpdate(levelUp, currentTime)
+    StatSnapshot:Update(UltraHardcoreDB.characterStats)
   end
 
 end
@@ -130,6 +135,7 @@ end
 _G.UpdateXPTracking = UpdateXPTracking
 _G.InitializeXPTracking = InitializeXPTracking
 _G.GetXPGainedForSetting = GetXPGainedForSetting
+_G.GetXPVariableSettings = GetXPVariableSettings
 
 -- Register events for XP tracking
 local xpTrackingFrame = CreateFrame("Frame")

@@ -217,6 +217,8 @@ function AddonXPTracking:InitializeXpGainedWithAddon(lastXPValue)
 end
 
 function AddonXPTracking:Initialize(lastXPValue)
+  local statsValid = StatSnapshot:IsValid()
+
   if self.trackingInitialized ~= true then
     self:InitializeXpGainedWithAddon(lastXPValue)
     self.trackingInitialized = true
@@ -250,7 +252,7 @@ end
 
 function AddonXPTracking:XPIsVerified()
   local stats = self:Stats()
-  local isVerified = stats.xpGWA == stats.xpTotal and stats.xpGWOA == 0
+  local isVerified = stats.xpGWA == stats.xpTotal and stats.xpGWOA == 0 and StatSnapshot:IsValid()
   self:XPTrackingDebug("Addon XP verification status: " .. tostring(isVerified))
   return isVerified
 end
@@ -331,7 +333,12 @@ end
 function AddonXPTracking:PrintXPVerificationWarning()
     local totalXP = self:GetTotalXP()
     local storedTotalXP = self:TotalXP()
-    print(msgPrefix .. redTextColour .. "WARNING!|r Detected " .. yellowTextColour ..  totalXP - storedTotalXP .. "|r missing XP!")
+
+    if totalXP ~= storedTotalXP then 
+      print(msgPrefix .. redTextColour .. "WARNING!|r Detected " .. yellowTextColour ..  totalXP - storedTotalXP .. "|r missing XP!")
+    elseif StatSnapshot:IsValid() ~= true then
+      print(msgPrefix .. redTextColour .. "WARNING!|r " .. yellowTextColour .. " Saved variables failed tamper check.|r Addon is no longer tracking XP.")
+    end
 end
 
 function AddonXPTracking:XPReport()
@@ -341,9 +348,7 @@ function AddonXPTracking:XPReport()
   print(msgPrefix .. yellowTextColour .. "XP Gained With Addon: " .. greenTextColour .. tostring(AddonXPTracking:WithAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "XP Gained Without Addon: |r".. redTextColour .. tostring(AddonXPTracking:WithoutAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "Your addon XP |r" .. verified)
-  if AddonXPTracking:ValidateTotalStoredXP() ~= true then
-    AddonXPTracking:PrintXPVerificationWarning()
-  end
+  AddonXPTracking:PrintXPVerificationWarning()
 
   -- REMOVE BEFORE RELEASE
   print(msgPrefix .. "If your XP was invalidated from the Nov 12th beta, run " .. redTextColour .. "/uhcresettracking|r to correct this")
