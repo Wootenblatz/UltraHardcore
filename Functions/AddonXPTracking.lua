@@ -20,7 +20,7 @@ local redTextColour = '|cffFF4444'
 local msgPrefix = yellowTextColour .. "[|r" .. redTextColour .. "UHC|r" .. yellowTextColour .. "]|r "
 
 function AddonXPTracking:Stats()
-    return CharacterStats:GetCurrentCharacterStats() 
+  return CharacterStats:GetCurrentCharacterStats() 
 end 
 
 function AddonXPTracking:UpdateStat(variable, value)
@@ -28,7 +28,7 @@ function AddonXPTracking:UpdateStat(variable, value)
 end
 
 function AddonXPTracking:DefaultSettings()
-    return CharacterStats.defaults
+  return CharacterStats.defaults
 end
 
 function AddonXPTracking:XPTrackingDebug(msg)
@@ -49,23 +49,23 @@ end
 
 -- This function adds XP from the level up table and current xp
 function AddonXPTracking:GetTotalXP()
-    local currentLevel = UnitLevel("player")
-    local currentXP = UnitXP('player')
-    return self:GetMinXPForLevel(currentLevel) + currentXP
+  local currentLevel = UnitLevel("player")
+  local currentXP = UnitXP('player')
+  return self:GetMinXPForLevel(currentLevel) + currentXP
 end
 
 function AddonXPTracking:CalculateTotalXPGained()
-    self:XPTrackingDebug("Calculating Total XP for " .. redTextColour .. UnitGUID("player") .. "|r")
-    local stats = self:Stats()
-    local totalXP = self:GetTotalXP()
-    self:XPTrackingDebug("Total XP is " .. totalXP)
-    stats["xpTotal"] = totalXP
-    if stats.xpGWA ~= nil and stats.xpGWA > 0 then
-      local xpGWOA = totalXP - stats.xpGWA
-      stats["xpGWOA"] = xpGWOA
-      self:XPTrackingDebug("XP Gained without Addon is " .. xpGWOA)
-    end
-    return totalXP
+  self:XPTrackingDebug("Calculating Total XP for " .. redTextColour .. UnitGUID("player") .. "|r")
+  local stats = self:Stats()
+  local totalXP = self:GetTotalXP()
+  self:XPTrackingDebug("Total XP is " .. totalXP)
+  stats["xpTotal"] = totalXP
+  if stats.xpGWA ~= nil and stats.xpGWA > 0 then
+    local xpGWOA = totalXP - stats.xpGWA
+    stats["xpGWOA"] = xpGWOA
+    self:XPTrackingDebug("XP Gained without Addon is " .. xpGWOA)
+  end
+  return totalXP
 end
 
 function AddonXPTracking:ShouldRecalculateXPGainedWithAddon()
@@ -90,7 +90,6 @@ function AddonXPTracking:ShouldCheckStat(statName)
                   and statName ~= "playerJumps"
                   and statName ~= "lastSessionXP"
                   and string.find(statName, "lowestHealth") == nil
-  --self:XPTrackingDebug("Should we count stats for " .. statName .. "? " .. tostring(result))
   return result                  
 end
 
@@ -165,28 +164,26 @@ function AddonXPTracking:ResetXPGainedWithAddon(forceReset)
   local xpWithoutAddon = 0
   local totalXP = 0
 
---  if forceReset ~= nil or self:ShouldRecalculateXPGainedWithAddon() then
-    local lowestXP = self:GetLowestXpGainedStat() or nil
-    local highestXP = self:GetHighestXpGainedStat() or nil
+  local lowestXP = self:GetLowestXpGainedStat() or nil
+  local highestXP = self:GetHighestXpGainedStat() or nil
 
-    if lowestXP < self.highXpMark then
-      totalXP = self:CalculateTotalXPGained()
-      local anyStat = self:GetHighestNonHealthStat()
+  if lowestXP < self.highXpMark then
+    totalXP = self:CalculateTotalXPGained()
+    local anyStat = self:GetHighestNonHealthStat()
 
-      if highestXP == 0 and anyStat == 0 and playerLevel > 1 then
-        self:XPTrackingDebug("All high stats are 0, player level is " .. playerLevel)
-        -- This player looks to have just turned ultra on so all their XP is without addon
-        xpDiff = 0
-      else
-        xpDiff = totalXP - lowestXP
-      end
-      xpWithoutAddon = totalXP - xpDiff
-
-      self:UpdateStat("xpGWA", xpDiff)
-      self:UpdateStat("xpGWOA", xpWithoutAddon)
-      self:UpdateStat("xpTotal", totalXP)
+    if highestXP == 0 and anyStat == 0 and playerLevel > 1 then
+      self:XPTrackingDebug("All high stats are 0, player level is " .. playerLevel)
+      -- This player looks to have just turned ultra on so all their XP is without addon
+      xpDiff = 0
+    else
+      xpDiff = totalXP - lowestXP
     end
-  -- end
+    xpWithoutAddon = totalXP - xpDiff
+
+    self:UpdateStat("xpGWA", xpDiff)
+    self:UpdateStat("xpGWOA", xpWithoutAddon)
+    self:UpdateStat("xpTotal", totalXP)
+  end
 end
 
 function AddonXPTracking:ForceSave()
@@ -213,6 +210,7 @@ function AddonXPTracking:Initialize(lastXPValue)
     local xp = self:CalculateTotalXPGained()
     self:UpdateStat("xpTotal", xp)
     self:XPTrackingDebug("Player XP total is " .. xp)
+  end
 
   if playerLevel == 1 and lastXPValue == 0 then
     self:UpdateStat("xpTotal", 0)
@@ -316,14 +314,9 @@ function AddonXPTracking:ValidateTotalStoredXP()
 end
 
 function AddonXPTracking:PrintXPVerificationWarning()
-    local totalXP = self:GetTotalXP()
-    local storedTotalXP = self:TotalXP()
-
-    if totalXP ~= storedTotalXP then 
-      print(msgPrefix .. redTextColour .. "WARNING!|r Detected " .. yellowTextColour ..  totalXP - storedTotalXP .. "|r missing XP!")
-    elseif StatSnapshot:IsValid() ~= true then
-      print(msgPrefix .. redTextColour .. "WARNING!|r " .. yellowTextColour .. " Saved variables failed tamper check.|r Addon is no longer tracking XP.")
-    end
+  if StatSnapshot:IsValid() ~= true then
+    print(msgPrefix .. redTextColour .. "WARNING!|r " .. yellowTextColour .. " Saved variables failed tamper check.|r Addon is no longer tracking XP.")
+  end
 end
 
 function AddonXPTracking:XPReport()
@@ -333,9 +326,7 @@ function AddonXPTracking:XPReport()
   print(msgPrefix .. yellowTextColour .. "XP Gained With Addon: " .. greenTextColour .. tostring(AddonXPTracking:WithAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "XP Gained Without Addon: |r".. redTextColour .. tostring(AddonXPTracking:WithoutAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "Your addon XP |r" .. verified)
-  if AddonXPTracking:ValidateTotalStoredXP() ~= true then
-    AddonXPTracking:PrintXPVerificationWarning()
-  end
+  AddonXPTracking:PrintXPVerificationWarning()
 end 
 
 
