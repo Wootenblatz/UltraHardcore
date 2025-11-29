@@ -24,7 +24,7 @@ function AddonXPTracking:Stats()
 end 
 
 function AddonXPTracking:UpdateStat(variable, value)
-    CharacterStats:UpdateStat(variable, value)
+  self:Stats()[variable] = value
 end
 
 function AddonXPTracking:DefaultSettings()
@@ -59,10 +59,10 @@ function AddonXPTracking:CalculateTotalXPGained()
     local stats = self:Stats()
     local totalXP = self:GetTotalXP()
     self:XPTrackingDebug("Total XP is " .. totalXP)
-    self:UpdateStat("xpTotal", totalXP)
+    stats["xpTotal"] = totalXP
     if stats.xpGWA ~= nil and stats.xpGWA > 0 then
       local xpGWOA = totalXP - stats.xpGWA
-      self:UpdateStat("xpGWOA", xpGWOA)
+      stats["xpGWOA"] = xpGWOA
       self:XPTrackingDebug("XP Gained without Addon is " .. xpGWOA)
     end
     return totalXP
@@ -83,6 +83,17 @@ function AddonXPTracking:ShouldRecalculateXPGainedWithAddon()
   end
 end
 
+function AddonXPTracking:ShouldCheckStat(statName)
+  local result = statName ~= "xpTotal"
+                  and statName ~= "xpGWA"
+                  and statName ~= "xpGWOA"
+                  and statName ~= "playerJumps"
+                  and statName ~= "lastSessionXP"
+                  and string.find(statName, "lowestHealth") == nil
+  --self:XPTrackingDebug("Should we count stats for " .. statName .. "? " .. tostring(result))
+  return result                  
+end
+
 function AddonXPTracking:GetHighestNonHealthStat()
   local stats = self:Stats()
   local highestXPStatName = ""
@@ -90,15 +101,11 @@ function AddonXPTracking:GetHighestNonHealthStat()
 
   for statName, _ in pairs(self:DefaultSettings()) do
     local xpForStat = stats[statName] 
-    if statName ~= "xpTotal" and statName ~= "xpGWA" and statName ~= "xpGWOA" and statName ~= "playerJumps" then
-      local startIdx = string.find(statName, "lowestHealth")
-
-      if startIdx == nil then
-        if xpForStat == nil then xpForStat = 0 end
-        if xpForStat > highestXp then
-          highestXPStatName = statName
-          highestXp = xpForStat
-        end
+    if self:ShouldCheckStat(statName) then
+      if xpForStat == nil then xpForStat = 0 end
+      if xpForStat > highestXp then
+        highestXPStatName = statName
+        highestXp = xpForStat
       end
     end
   end
@@ -195,16 +202,17 @@ function AddonXPTracking:ForceSave()
                                 )
 end
 
-function AddonXPTracking:InitializeXpGainedWithAddon(lastXPValue)
-  local playerLevel = UnitLevel("player")
-  if lastXPValue == 0 and playerLevel > 1 then
-    -- This shouldn't happen but just in case, don't run until later
-    return false
-  end
+function AddonXPTracking:Initialize(lastXPValue)
+  if self.trackingInitialized ~= true then
+    local playerLevel = UnitLevel("player")
+    if lastXPValue == 0 and playerLevel > 1 then
+      -- This shouldn't happen but just in case, don't run until later
+      return false
+    end
 
-  local xp = self:CalculateTotalXPGained()
-  self:UpdateStat("xpTotal", xp)
-  self:XPTrackingDebug("Player XP total is " .. xp)
+    local xp = self:CalculateTotalXPGained()
+    self:UpdateStat("xpTotal", xp)
+    self:XPTrackingDebug("Player XP total is " .. xp)
 
   if playerLevel == 1 and lastXPValue == 0 then
     self:UpdateStat("xpTotal", 0)
@@ -226,11 +234,11 @@ function AddonXPTracking:Initialize(lastXPValue)
 end
 
 function AddonXPTracking:ShouldStoreStat(xpVariable)
-  return xpVariable ~= "xpGWOA"
+  return xpVariable ~= "xpGWOA" and xpVariable ~= "xpTotal"
 end
 
 function AddonXPTracking:ShouldTrackStat(xpVariable)
-  if xpVariable == "xpGWA" or xpVariable == "xpTotal" or xpVariable == "xpGWOA" then
+  if xpVariable == "xpGWA" or xpVariable == "xpGWOA" then
     return true
   else
     return false
@@ -239,15 +247,15 @@ end
 
 -- This function returns the storged total XP value from CharacterStats
 function AddonXPTracking:TotalXP()
-  return self:Stats().xpTotal
+  return self:Stats()["xpTotal"]
 end
 
 function AddonXPTracking:WithAddon()
-  return self:Stats().xpGWA
+  return self:Stats()["xpGWA"]
 end
 
 function AddonXPTracking:WithoutAddon()
-  return self:Stats().xpGWOA
+  return self:Stats()["xpGWOA"]
 end
 
 function AddonXPTracking:XPIsVerified()
@@ -303,29 +311,6 @@ function AddonXPTracking:IsAddonXPValid(currentLevel)
   return (stats.xpGWA + stats.xpGWOA) >= xpForLevel
 end
 
-function AddonXPTracking:FixAddonXPDrift(currentLevel)
-  local stats = self:Stats()
-  local xpForLevel = self:GetMinXPForLevel(currentLevel)
-  if stats.xpGWA + stats.xpGWOA < xpForLevel then
-    local diff = xpForLevel - stats.xpGWA
-
-    stats.xpGWA = stats.xpGWA + diff
-    if stats.xpTotal < xpForLevel then
-      stats.xpTotal = stats.xpTotal + diff
-    end
-    if stats.xpGWOA > 0 and stats.xpGWOA >= diff then
-      stats.xpGWOA = stats.xpGWOA - diff
-    end
-
-    self:XPTrackingDebug("Correcting a " .. yellowTextColour ..  diff .. "|r XP drift "
-    .. redTextColour .. "Do a " 
-    .. greenTextColour .. "/reload "
-    .. redTextColour .. "ASAP to prevent unverified XP!|r")
-    return diff
-  end
-  return -1
-end
-
 function AddonXPTracking:ValidateTotalStoredXP()
   return self:GetTotalXP() == self:TotalXP()
 end
@@ -348,22 +333,21 @@ function AddonXPTracking:XPReport()
   print(msgPrefix .. yellowTextColour .. "XP Gained With Addon: " .. greenTextColour .. tostring(AddonXPTracking:WithAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "XP Gained Without Addon: |r".. redTextColour .. tostring(AddonXPTracking:WithoutAddon()) .. "|r")
   print(msgPrefix .. yellowTextColour .. "Your addon XP |r" .. verified)
-  AddonXPTracking:PrintXPVerificationWarning()
-
-  -- REMOVE BEFORE RELEASE
-  print(msgPrefix .. "If your XP was invalidated from the Nov 12th beta, run " .. redTextColour .. "/uhcresettracking|r to correct this")
+  if AddonXPTracking:ValidateTotalStoredXP() ~= true then
+    AddonXPTracking:PrintXPVerificationWarning()
+  end
 end 
 
 
 -- REMOVE BEFORE RELEASE
-SLASH_DEVRESETXP1 = '/uhcresettracking'
+--[[SLASH_DEVRESETXP1 = '/uhcresettracking'
 SlashCmdList['DEVRESETXP'] = function()
   AddonXPTracking:UpdateStat("xpTotal", nil)
   AddonXPTracking:UpdateStat("xpGWA", nil)
   AddonXPTracking:UpdateStat("xpGWOA", nil)
   AddonXPTracking:ResetXPGainedWithAddon(true)
   print(msgPrefix .. yellowTextColour ..  "ADDON XP RESET.|r Please do " .. redTextColour .. "/reload|r now")
-end
+end]]
 
 SLASH_XPFORLEVEL1 = '/uhcxpforlevel'
 SlashCmdList['XPFORLEVEL'] = function(msg)
