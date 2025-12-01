@@ -222,15 +222,6 @@ function AddonXPTracking:Initialize(lastXPValue)
   return true
 end
 
-function AddonXPTracking:Initialize(lastXPValue)
-  local statsValid = StatSnapshot:IsValid()
-
-  if self.trackingInitialized ~= true then
-    self:InitializeXpGainedWithAddon(lastXPValue)
-    self.trackingInitialized = true
-  end
-end
-
 function AddonXPTracking:ShouldStoreStat(xpVariable)
   return xpVariable ~= "xpGWOA" and xpVariable ~= "xpTotal"
 end
